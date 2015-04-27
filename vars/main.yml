@@ -1,0 +1,5 @@
+## Unset these and populate rhn_activationkey to use an activation key
+rhn_user:         my-rhn-username
+rhn_password:     my-rhn-password
+## Leave this unset to use rhn_user and rhn_password
+rhn_activationkey: 

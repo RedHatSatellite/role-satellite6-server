@@ -1,24 +1,24 @@
 ---
   - name: Fail if OS is not RHEL
-    assert: {{ ansible_lsb["id"] }} is "RedHatEnterpriseServer"
+    assert: { that: "ansible_distribution == 'RedHat'" } 
   
   - name: Fail if Puppet is installed
-    command: "rpm -qa *puppet* && exit 1"
+    shell: "rpm -q *puppet* && exit 1"
 
   - name: Fail if Java is present
-    command: "which java && exit 1"
+    shell: "which java && exit 1"
 
   - name: Fail if SELinux disabled
-    command: "test $(getenforce) == 'Enforcing'" 
+    shell: "test $(getenforce) == 'Enforcing'" 
 
   - name: Confirm DNS resolution for localhost
     command: "ping -c1 localhost"
 
   - name: Confirm DNS resoultion for hostname
-    command: "ping -c1 $(hostname -s)"
+    shell: "ping -c1 $(hostname -s)"
 
   - name: Confirm DNS resolution for hostname.domain
-    command: "ping -c1 $(hostname -f)"
+    shell: "ping -c1 $(hostname -f)"
 
   - include: timesync-6.yml
     when: "{{ ansible_distribution_major_version }} == 6"
@@ -37,8 +37,8 @@
   - name: Enable Satellite subscription via username/password
     redhat_subscription: 
       state: present 
-      username: {{ rhn_user }} 
-      password: {{ rhn_pass }} 
+      username: "{{ rhn_user }}"
+      password: "{{ rhn_pass }}"
       pool: '^(Red Hat Enterprise Server|Red Hat Satellite)$'
     when: rhn_activationkey is unset
 
@@ -46,7 +46,7 @@
   - name: Enable Satellite subscription via activation key
     redhat_subscription: 
       state: present 
-      activationkey: {{ rhn_activationkey }} 
+      activationkey: "{{ rhn_activationkey }}"
       pool: '^(Red Hat Enterprise Server|Red Hat Satellite)$'
     when: rhn_user and rhn_pass is unset
 
@@ -66,7 +66,7 @@
     copy: role-ansible-satellite6-answers.yaml /etc/katello-installer
 
   - name: Enable answer file
-    lineinfile: dest=/etc/katello-installer/katello-installer.yaml line=":answer_file: /etc/katello-installer/role-ansible-satellite6-answers.yaml"
+    lineinfile: "dest=/etc/katello-installer/katello-installer.yaml line=':answer_file: /etc/katello-installer/role-ansible-satellite6-answers.yaml'"
 
   - name: Run katello installer
-    comand: katello-installer
+    command: katello-installer

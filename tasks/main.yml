@@ -1,12 +1,19 @@
 ---
+  - name: Fail if no Red Hat Subscription Manager authentication data is passed to the role
+    fail: msg="You must pass authentication data to this role. See README.md"
+    when: "( rhn_user is not defined or rhn_pass is not defined ) and rhn_activation_key is not defined" 
+
   - name: Fail if OS is not RHEL
     assert: { that: "ansible_distribution == 'RedHat'" } 
+
+  - name: Fail if OS is not RHEL 6.5 or higher
+    assert: { that: "ansible_distribution_version >= 6.5" } 
   
   - name: Fail if Puppet is installed
-    shell: "rpm -q *puppet* && exit 1"
+    shell: "which puppet && exit 1 || exit 0"
 
   - name: Fail if Java is present
-    shell: "which java && exit 1"
+    shell: "which java && exit 1 || exit 0"
 
   - name: Fail if SELinux disabled
     shell: "test $(getenforce) == 'Enforcing'" 
@@ -20,50 +27,57 @@
   - name: Confirm DNS resolution for hostname.domain
     shell: "ping -c1 $(hostname -f)"
 
+  - name: Enable RHEL subscription via username/password
+    redhat_subscription: 
+      state: present 
+      username: "{{ rhn_user }}"
+      password: "{{ rhn_pass }}"
+      pool: '^(Red Hat Enterprise Server|Red Hat Satellite)$'
+    when: rhn_user is defined and rhn_pass is defined
+
+  - name: Enable RHEL subscription via activation key
+    redhat_subscription: 
+      state: present 
+      activationkey: "{{ rhn_activationkey }}"
+      pool: '^(Red Hat Enterprise Linux Server|Red Hat Satellite).*'
+    when: rhn_activation_key is defined
+
+  ## This shouldn't be needed, but the above isn't working as expected
+  - name: FIXME - manually add subs
+    command: "subscription-manager subscribe --pool=8a85f981497c741e01497c85c47f56ac --pool=8a85f9844011067a0140765317c62302"
+     
+  - name: Reset enabled yum/rhn distros
+    command: subscription-manager repos --disable "*"
+    ignore_errors: true
+
+  ## Note: Satellite channel is rhel-<rhel version>-server-satellite-<satellite version>-rpms
+  - name: Only enable required yum/rhn distros
+    command: "subscription-manager repos \
+      --enable rhel-{{ ansible_distribution_major_version }}-server-rpms \
+      --enable rhel-server-rhscl-{{ ansible_distribution_major_version }}-rpms \
+      --enable rhel-{{ ansible_distribution_major_version }}-server-satellite-6.0-rpms"
+
   - include: timesync-6.yml
     when: "{{ ansible_distribution_major_version }} == 6"
 
   - include: timesync-7.yml
     when: "{{ ansible_distribution_major_version }} == 7"
   
-  ## Edit lines in this file to modify the firewall rules
-  - include: firewall.yml
+  ## Installs and configures firewall- comment out to leave firewall out
+  - include: firewall-6.yml
+    when: "{{ ansible_distribution_major_version }} == 6"
+
+  - include: firewall-7.yml
+    when: "{{ ansible_distribution_major_version }} == 7"
 
   ## comment this line out to skip recommended but not required packages
   - include: recommended-packages.yml
-
-  ## Red Hat Subscription Manager settings - edit variables in vars, or change below
-  # Register as user (joe_user) with password (somepass) 
-  - name: Enable Satellite subscription via username/password
-    redhat_subscription: 
-      state: present 
-      username: "{{ rhn_user }}"
-      password: "{{ rhn_pass }}"
-      pool: '^(Red Hat Enterprise Server|Red Hat Satellite)$'
-    when: rhn_activationkey is unset
-
-  # Register with activation key
-  - name: Enable Satellite subscription via activation key
-    redhat_subscription: 
-      state: present 
-      activationkey: "{{ rhn_activationkey }}"
-      pool: '^(Red Hat Enterprise Server|Red Hat Satellite)$'
-    when: rhn_user and rhn_pass is unset
-
-  - name: Reset enabled yum/rhn distros
-    command: subscription-manager repos --disable "*"
-
-  - name: Only enable required yum/rhn distros
-    command: "subscription-manager repos \
-      --enable rhel-{{ ansible_distribution_major_version }}-server-rpms \
-      --enable rhel-server-rhscl-{{ ansible_distribution_major_version }}-rpms \
-      --enable rhel-6-server-satellite-{{ ansible_distribution_major_version }}.0-rpms"
 
   - name: Install Katello
     yum: name=katello state=installed
 
   - name: Copy answer file into place
-    copy: role-ansible-satellite6-answers.yaml /etc/katello-installer
+    copy: src=role-ansible-satellite6-answers.yaml dest=/etc/katello-installer/role-ansible-satellite6-answers.yaml
 
   - name: Enable answer file
     lineinfile: "dest=/etc/katello-installer/katello-installer.yaml line=':answer_file: /etc/katello-installer/role-ansible-satellite6-answers.yaml'"

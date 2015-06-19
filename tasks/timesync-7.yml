@@ -3,4 +3,4 @@
     yum: name=chrony state=installed
 
   - name: Enable chrony service
-    service: name=chrony state=started enabled=true
+    service: name=chronyd state=started enabled=true

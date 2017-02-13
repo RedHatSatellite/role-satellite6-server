@@ -42,7 +42,7 @@
     command: "ping -c1 localhost"
     changed_when: False
 
-  - name: Confirm DNS resoultion for short domain name of this host
+  - name: Confirm DNS resolution for short domain name of this host
     shell: "ping -c1 $(hostname -s)"
     changed_when: False
 
@@ -85,18 +85,10 @@
       --enable rhel-{{ ansible_distribution_major_version }}-server-satellite-6.1-rpms"
 
   ## Installs and activates time sync. This is required for Foreman to function
-  - include: timesync-6.yml
-    when: "{{ ansible_distribution_major_version }} == 6"
+  - include: timesync-{{ ansible_distribution_major_version }}.yml
 
-  - include: timesync-7.yml
-    when: "{{ ansible_distribution_major_version }} == 7"
-  
   ## Installs and configures firewall- comment out to leave firewall out
-  - include: firewall-6.yml
-    when: "{{ ansible_distribution_major_version }} == 6"
-
-  - include: firewall-7.yml
-    when: "{{ ansible_distribution_major_version }} == 7"
+  - include: firewall-{{ ansible_distribution_major_version }}.yml
 
   ## comment this line out to skip recommended but not required packages
   - include: recommended-packages.yml

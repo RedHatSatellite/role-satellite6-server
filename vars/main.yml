@@ -1,0 +1,7 @@
+---
+- installer_prefix:
+    6.1: katello
+    6.2: satellite
+- installer_package: "{{ installer_prefix.ansible_version }}"
+- installer_name: "{{ installer_prefix.ansible_version }}-installer"
+- installer_dir: "/etc/{{ installer_name }}"

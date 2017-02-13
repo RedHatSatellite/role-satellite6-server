@@ -90,19 +90,26 @@
   ## Installs and configures firewall- comment out to leave firewall out
   - include: firewall-{{ ansible_distribution_major_version }}.yml
 
+  - name: upgrade all the RPMs to their latest version (recommmended)
+    yum: name='*' state='latest'
+
   ## comment this line out to skip recommended but not required packages
   - include: recommended-packages.yml
 
-  - name: Install Katello
-    yum: name=katello state=installed
+  - name: Install Katello / Satellite
+    yum: name="{{ installer_package }}" state=installed
 
   - name: Copy answer file into place
-    copy: src=role-ansible-satellite6-answers.yaml dest=/etc/katello-installer/role-ansible-satellite6-answers.yaml
+    copy:
+      src: role-ansible-satellite-{{ satellite_version }}-answers.yaml
+      dest: "{{ installer_dir }}/role-ansible-satellite6-answers.yaml"
     register: copied_answer_file
 
   - name: Enable answer file
-    lineinfile: "dest=/etc/katello-installer/katello-installer.yaml line=':answer_file: /etc/katello-installer/role-ansible-satellite6-answers.yaml'"
+    lineinfile:
+      dest: "{{ installer_dir }}/{{ installer_name }}.yaml"
+      line: ':answer_file: {{ installer_dir }}/role-ansible-satellite6-answers.yaml'
 
-  - name: Run katello installer
-    command: katello-installer 
+  - name: Run Katello / Satellite installer
+    command: "{{ installer_name }}"
     when: copied_answer_file.changed == true

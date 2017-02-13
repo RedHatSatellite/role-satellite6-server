@@ -68,9 +68,15 @@
       pool: "{{ rhn_pool_pattern | default('.*Red Hat (Enterprise Linux|Satellite).*') }}"
     when: rhn_activation_key is defined
 
+  - name: Check which pool IDs are already consumed
+    command: subscription-manager list --pool-only --consumed
+    register: consumed_pool_ids
+    changed_when: false
+
   - name: Add subs by pool id if your version of Ansible has a buggy redhat_subscription module
     command: "subscription-manager subscribe --pool={{ item }}"
     with_items: "{{ rhn_pool_ids | default([])}}"
+    when: item not in consumed_pool_ids.stdout_lines
      
   ## FIXME: these two tasks together shouldn't change the end-state, but neither is idempotent
   - name: Reset enabled yum/rhn distros

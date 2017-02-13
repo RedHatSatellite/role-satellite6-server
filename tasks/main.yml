@@ -108,14 +108,32 @@
   - name: Copy answer file into place
     copy:
       src: role-ansible-satellite-{{ satellite_version }}-answers.yaml
-      dest: "{{ installer_dir }}/role-ansible-satellite6-answers.yaml"
+      dest: "{{ installer_answer_file }}"
     register: copied_answer_file
 
-  - name: Enable answer file
-    lineinfile:
-      dest: "{{ installer_dir }}/{{ installer_name }}.yaml"
-      line: ':answer_file: {{ installer_dir }}/role-ansible-satellite6-answers.yaml'
+  - block:
 
-  - name: Run Katello / Satellite installer
-    command: "{{ installer_name }}"
-    when: copied_answer_file.changed == true
+    - name: Enable answer file for Satellite 6.1-
+      lineinfile:
+        dest: "{{ installer_file }}"
+        line: ':answer_file: {{ installer_answer_file }}'
+
+    - name: Run Katello installer for Satellite 6.1-
+      command: "{{ installer_script }}"
+      when: copied_answer_file.changed == true
+
+    when: satellite_version < 6.2
+
+  - block:
+
+    - name: Enable answer file for Satellite 6.2+
+      lineinfile:
+        dest: "{{ installer_file }}"
+        line: '  :answer_file: {{ installer_answer_file }}'
+        regexp: '^ *:answer_file: '
+
+    - name: Run Satellite installer for Satellite 6.2+
+      command: "{{ installer_script }} --scenario satellite"
+      when: copied_answer_file.changed == true
+
+    when: satellite_version >= 6.2

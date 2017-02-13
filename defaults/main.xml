@@ -1,3 +1,4 @@
 ---
 satellite_version: 6.2
-installer_answer_file: "{{ installer_dir }}/role-ansible-satellite6-answers.yaml"
+# Sounds like a defaults-var can't rely on a vars-var, moved to vars/main.yml
+#installer_answer_file: "{{ installer_dir }}/role-ansible-satellite6-answers.yaml"

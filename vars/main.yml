@@ -15,4 +15,5 @@ installer_package: "{{ installer_packages[satellite_version] }}"
 installer_dir: "{{ installer_dirs[satellite_version] }}"
 installer_file: "{{ installer_files[satellite_version] }}"
 installer_script: "{{ installer_scripts[satellite_version] }}"
-# installer_answer_file is defined in defaults as it can be freely overwritten!
+# Sounds like a defaults-var can't rely on a vars-var, hence defined here:
+installer_answer_file: "{{ installer_dir }}/role-ansible-satellite6-answers.yaml"

@@ -82,7 +82,7 @@
     command: "subscription-manager repos \
       --enable rhel-{{ ansible_distribution_major_version }}-server-rpms \
       --enable rhel-server-rhscl-{{ ansible_distribution_major_version }}-rpms \
-      --enable rhel-{{ ansible_distribution_major_version }}-server-satellite-6.1-rpms"
+      --enable rhel-{{ ansible_distribution_major_version }}-server-satellite-{{ satellite_version }}-rpms"
 
   ## Installs and activates time sync. This is required for Foreman to function
   - include: timesync-{{ ansible_distribution_major_version }}.yml

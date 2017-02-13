@@ -2,3 +2,4 @@
     yum: state=installed name={{ item }}
     with_items:
       - sos
+      - bash-completion

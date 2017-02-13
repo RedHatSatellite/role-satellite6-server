@@ -58,14 +58,14 @@
       state: present 
       username: "{{ rhn_user }}"
       password: "{{ rhn_pass }}"
-      pool: ".*Red Hat (Enterprise Linux|Satellite).*"
+      pool: "{{ rhn_pool_pattern | default('.*Red Hat (Enterprise Linux|Satellite).*')"
     when: rhn_user is defined and rhn_pass is defined
 
   - name: Enable RHEL subscription via activation key
     redhat_subscription: 
       state: present 
       activationkey: "{{ rhn_activationkey }}"
-      pool: ".*Red Hat (Enterprise Linux|Satellite).*"
+      pool: "{{ rhn_pool_pattern | default('.*Red Hat (Enterprise Linux|Satellite).*')"
     when: rhn_activation_key is defined
 
   - name: Add subs by pool id if your version of Ansible has a buggy redhat_subscription module

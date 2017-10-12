@@ -28,3 +28,23 @@
   - name: Enable Foreman via IPTables
     lineinfile: dest=/etc/sysconfig/iptables state=present line="-A INPUT -p tcp -m state --state NEW -m tcp --dport 9090 -j ACCEPT"
     notify: restart iptables
+
+  - block:
+
+    - name: Enable AMQP/SSL-TLS (client to internal capsule) via IPTables
+      lineinfile: dest=/etc/sysconfig/iptables state=present line="-A INPUT -p tcp -m state --state NEW -m tcp --dport 5647 -j ACCEPT"
+      notify: restart iptables
+
+    - name: Enable AMQP/SSL-TLS (external capsule to satellite) via IPTables
+      lineinfile: dest=/etc/sysconfig/iptables state=present line="-A INPUT -p tcp -m state --state NEW -m tcp --dport 5646 -j ACCEPT"
+      notify: restart iptables
+
+    - name: Enable iPXE template retrieval via IPTables
+      lineinfile: dest=/etc/sysconfig/iptables state=present line="-A INPUT -p tcp -m state --state NEW -m tcp --dport 8000 -j ACCEPT"
+      notify: restart iptables
+
+    - name: Enable client registration via IPTables
+      lineinfile: dest=/etc/sysconfig/iptables state=present line="-A INPUT -p tcp -m state --state NEW -m tcp --dport 8443 -j ACCEPT"
+      notify: restart iptables
+
+    when: satellite_version >= 6.2

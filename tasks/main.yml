@@ -42,7 +42,7 @@
     command: "ping -c1 localhost"
     changed_when: False
 
-  - name: Confirm DNS resoultion for short domain name of this host
+  - name: Confirm DNS resolution for short domain name of this host
     shell: "ping -c1 $(hostname -s)"
     changed_when: False
 
@@ -58,19 +58,25 @@
       state: present 
       username: "{{ rhn_user }}"
       password: "{{ rhn_pass }}"
-      pool: ".*Red Hat (Enterprise Linux|Satellite).*"
+      pool: "{{ rhn_pool_pattern | default('.*Red Hat (Enterprise Linux|Satellite).*') }}"
     when: rhn_user is defined and rhn_pass is defined
 
   - name: Enable RHEL subscription via activation key
     redhat_subscription: 
       state: present 
       activationkey: "{{ rhn_activationkey }}"
-      pool: ".*Red Hat (Enterprise Linux|Satellite).*"
+      pool: "{{ rhn_pool_pattern | default('.*Red Hat (Enterprise Linux|Satellite).*') }}"
     when: rhn_activation_key is defined
+
+  - name: Check which pool IDs are already consumed
+    command: subscription-manager list --pool-only --consumed
+    register: consumed_pool_ids
+    changed_when: false
 
   - name: Add subs by pool id if your version of Ansible has a buggy redhat_subscription module
     command: "subscription-manager subscribe --pool={{ item }}"
     with_items: "{{ rhn_pool_ids | default([])}}"
+    when: item not in consumed_pool_ids.stdout_lines
      
   ## FIXME: these two tasks together shouldn't change the end-state, but neither is idempotent
   - name: Reset enabled yum/rhn distros
@@ -82,35 +88,52 @@
     command: "subscription-manager repos \
       --enable rhel-{{ ansible_distribution_major_version }}-server-rpms \
       --enable rhel-server-rhscl-{{ ansible_distribution_major_version }}-rpms \
-      --enable rhel-{{ ansible_distribution_major_version }}-server-satellite-6.1-rpms"
+      --enable rhel-{{ ansible_distribution_major_version }}-server-satellite-{{ satellite_version }}-rpms"
 
   ## Installs and activates time sync. This is required for Foreman to function
-  - include: timesync-6.yml
-    when: "{{ ansible_distribution_major_version }} == 6"
+  - include: timesync-{{ ansible_distribution_major_version }}.yml
 
-  - include: timesync-7.yml
-    when: "{{ ansible_distribution_major_version }} == 7"
-  
   ## Installs and configures firewall- comment out to leave firewall out
-  - include: firewall-6.yml
-    when: "{{ ansible_distribution_major_version }} == 6"
+  - include: firewall-{{ ansible_distribution_major_version }}.yml
 
-  - include: firewall-7.yml
-    when: "{{ ansible_distribution_major_version }} == 7"
+  - name: upgrade all the RPMs to their latest version (recommmended)
+    yum: name='*' state='latest'
 
   ## comment this line out to skip recommended but not required packages
   - include: recommended-packages.yml
 
-  - name: Install Katello
-    yum: name=katello state=installed
+  - name: Install Katello / Satellite
+    yum: name="{{ installer_package }}" state=installed
 
   - name: Copy answer file into place
-    copy: src=role-ansible-satellite6-answers.yaml dest=/etc/katello-installer/role-ansible-satellite6-answers.yaml
+    copy:
+      src: role-ansible-satellite-{{ satellite_version }}-answers.yaml
+      dest: "{{ installer_answer_file }}"
     register: copied_answer_file
 
-  - name: Enable answer file
-    lineinfile: "dest=/etc/katello-installer/katello-installer.yaml line=':answer_file: /etc/katello-installer/role-ansible-satellite6-answers.yaml'"
+  - block:
 
-  - name: Run katello installer
-    command: katello-installer 
-    when: copied_answer_file.changed == true
+    - name: Enable answer file for Satellite 6.1-
+      lineinfile:
+        dest: "{{ installer_file }}"
+        line: ':answer_file: {{ installer_answer_file }}'
+
+    - name: Run Katello installer for Satellite 6.1-
+      command: "{{ installer_script }}"
+      when: copied_answer_file.changed == true
+
+    when: satellite_version < 6.2
+
+  - block:
+
+    - name: Enable answer file for Satellite 6.2+
+      lineinfile:
+        dest: "{{ installer_file }}"
+        line: '  :answer_file: {{ installer_answer_file }}'
+        regexp: '^ *:answer_file: '
+
+    - name: Run Satellite installer for Satellite 6.2+
+      command: "{{ installer_script }} --scenario satellite"
+      when: copied_answer_file.changed == true
+
+    when: satellite_version >= 6.2

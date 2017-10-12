@@ -1,0 +1,19 @@
+---
+installer_packages:
+  6.1: katello
+  6.2: satellite
+installer_dirs:
+  6.1: /etc/katello-installer
+  6.2: /etc/foreman-installer/scenarios.d
+installer_files:
+  6.1: /etc/katello-installer/katello-installer.yaml
+  6.2: /etc/foreman-installer/scenarios.d/satellite.yaml
+installer_scripts:
+  6.1: katello-installer
+  6.2: satellite-installer
+installer_package: "{{ installer_packages[satellite_version] }}"
+installer_dir: "{{ installer_dirs[satellite_version] }}"
+installer_file: "{{ installer_files[satellite_version] }}"
+installer_script: "{{ installer_scripts[satellite_version] }}"
+# Sounds like a defaults-var can't rely on a vars-var, hence defined here:
+installer_answer_file: "{{ installer_dir }}/role-ansible-satellite6-answers.yaml"

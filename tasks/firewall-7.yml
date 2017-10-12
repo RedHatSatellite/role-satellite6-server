@@ -5,26 +5,48 @@
   - name: Run firewalld now and at boot
     service: name=firewalld state=started enabled=true
 
-  - name: Enable HTTPS via firewalld
-    firewalld: service=https permanent=true state=enabled
-    notify: restart firewalld
+  - block:
 
-  - name: Enable HTTP via firewalld
-    firewalld: service=http permanent=true state=enabled
-    notify: restart firewalld
+    - name: Enable HTTPS via firewalld
+      firewalld: service=https permanent=true state=enabled
+      notify: restart firewalld
 
-  - name: Enable Satellite SSL communication via firewalld
-    firewalld: port=5671/tcp permanent=true state=enabled
-    notify: restart firewalld
+    - name: Enable HTTP via firewalld
+      firewalld: service=http permanent=true state=enabled
+      notify: restart firewalld
 
-  - name: Enable Tomcat via firewalld
-    firewalld: port=8080/tcp permanent=true state=enabled
-    notify: restart firewalld
+    - name: Enable Satellite SSL communication via firewalld
+      firewalld: port=5671/tcp permanent=true state=enabled
+      notify: restart firewalld
 
-  - name: Enable Puppet via firewalld
-    firewalld: port=8140/tcp permanent=true state=enabled
-    notify: restart firewalld
+    - name: Enable Tomcat via firewalld
+      firewalld: port=8080/tcp permanent=true state=enabled
+      notify: restart firewalld
 
-  - name: Enable Foreman via firewalld
-    firewalld: port=9090/tcp permanent=true state=enabled
-    notify: restart firewalld
+    - name: Enable Puppet via firewalld
+      firewalld: port=8140/tcp permanent=true state=enabled
+      notify: restart firewalld
+
+    - name: Enable Foreman via firewalld
+      firewalld: port=9090/tcp permanent=true state=enabled
+      notify: restart firewalld
+
+    when: satellite_version < 6.2
+
+  - block:
+
+    # starting with RHEL 7.2 (at least) covers the services:
+    # tcp/80 tcp/443 tcp/5646-5647 tcp/5671 tcp/8140 tcp/8080 tcp/9090
+    - name: Enable Satellite 6 service via firewalld
+      firewalld: service=RH-Satellite-6 permanent=true state=enabled
+      notify: restart firewalld
+
+    - name: Enable iPXE template retrieval via firewalld
+      firewalld: port=8000/tcp permanent=true state=enabled
+      notify: restart firewalld
+
+    - name: Enable client registration via firewalld
+      firewalld: port=8443/tcp permanent=true state=enabled
+      notify: restart firewalld
+
+    when: satellite_version >= 6.2
